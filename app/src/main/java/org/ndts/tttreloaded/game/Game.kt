@@ -39,7 +39,27 @@ data class InnerBoardState(
     val result: InnerBoardResult,
     val tiles: Array<TileState>,
     val enabled: Boolean
-)
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as InnerBoardState
+
+        if (result != other.result) return false
+        if (!tiles.contentEquals(other.tiles)) return false
+        if (enabled != other.enabled) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result1 = result.hashCode()
+        result1 = 31 * result1 + tiles.contentHashCode()
+        result1 = 31 * result1 + enabled.hashCode()
+        return result1
+    }
+}
 
 data class OuterBoardState(
     val result: OuterBoardResult, val innerBoards: Array<InnerBoardState>
@@ -88,6 +108,24 @@ data class OuterBoardState(
         )
         return this.copy(result = nextOuterBoardResult, innerBoards = nextInnerBoards)
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as OuterBoardState
+
+        if (result != other.result) return false
+        if (!innerBoards.contentEquals(other.innerBoards)) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result1 = result.hashCode()
+        result1 = 31 * result1 + innerBoards.contentHashCode()
+        return result1
+    }
 }
 
 data class GameState(
@@ -103,7 +141,10 @@ data class GameState(
         if (event.player != player) return this
         val nextOuterBoardState = outerBoardState.apply(event)
         return if (nextOuterBoardState === outerBoardState) this else this.copy(
-            player = player.next(),
+            player = when (nextOuterBoardState.result) {
+                OuterBoardResult.None -> player.next()
+                else -> player
+            },
             outerBoardState = nextOuterBoardState
         )
     }
@@ -132,6 +173,11 @@ enum class Player {
     fun obr(): OuterBoardResult = when (this) {
         Left -> OuterBoardResult.Left
         Right -> OuterBoardResult.Right
+    }
+
+    override fun toString(): String = when (this) {
+        Left -> "Red"
+        Right -> "Blue"
     }
 }
 
