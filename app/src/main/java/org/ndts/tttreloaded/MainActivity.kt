@@ -15,7 +15,6 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -32,7 +31,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardColors
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -41,6 +44,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -80,16 +84,31 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun MaterialTheme.leftColor() = Color.Red
+fun ColorScheme.leftColor() = secondary
 
 @Composable
-fun MaterialTheme.rightColor() = Color.Blue
+fun ColorScheme.leftContainer() = secondaryContainer
 
 @Composable
-fun MaterialTheme.noneColor() = this.colorScheme.background
+fun ColorScheme.onLeftContainer() = onSecondaryContainer
 
 @Composable
-fun MaterialTheme.drawColor() = this.colorScheme.onBackground
+fun ColorScheme.rightColor() = tertiary
+
+@Composable
+fun ColorScheme.rightContainer() = tertiaryContainer
+
+@Composable
+fun ColorScheme.onRightContainer() = onTertiaryContainer
+
+@Composable
+fun ColorScheme.noneColor() = outlineVariant
+
+@Composable
+fun ColorScheme.drawColor() = onBackground
+
+@Composable
+fun ColorScheme.borderColor() = outline
 
 @Composable
 fun Game() {
@@ -109,7 +128,17 @@ fun Game() {
                 Player.Left -> LeftIcon()
                 Player.Right -> RightIcon()
             }
-        }
+        },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = when (state.player) {
+                    Player.Left -> MaterialTheme.colorScheme.leftContainer()
+                    Player.Right -> MaterialTheme.colorScheme.rightContainer()
+                },
+                titleContentColor = when (state.player) {
+                    Player.Left -> MaterialTheme.colorScheme.onLeftContainer()
+                    Player.Right -> MaterialTheme.colorScheme.onRightContainer()
+                }
+            )
         )
     }) {
         Column(
@@ -132,6 +161,16 @@ fun Game() {
                         else -> showDialog = true
                     }
                 },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = when (state.player) {
+                        Player.Left -> MaterialTheme.colorScheme.leftContainer()
+                        Player.Right -> MaterialTheme.colorScheme.rightContainer()
+                    },
+                    contentColor = when (state.player) {
+                        Player.Left -> MaterialTheme.colorScheme.onLeftContainer()
+                        Player.Right -> MaterialTheme.colorScheme.onRightContainer()
+                    }
+                )
             ) {
                 Text(text = "Reset")
             }
@@ -192,21 +231,21 @@ fun InnerBoard(
             InnerBoardResult.Left -> LeftTile(
                 modifier = modifier.border(
                     width = 1.5.dp,
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = MaterialTheme.colorScheme.borderColor()
                 )
             )
 
             InnerBoardResult.Right -> RightTile(
                 modifier = modifier.border(
                     width = 1.5.dp,
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = MaterialTheme.colorScheme.borderColor()
                 )
             )
 
             InnerBoardResult.Draw -> DrawTile(
                 modifier = modifier.border(
                     width = 1.5.dp,
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = MaterialTheme.colorScheme.borderColor()
                 )
             )
 
@@ -240,7 +279,7 @@ fun Board(
                 .aspectRatio(1.0f)
                 .fillMaxSize(),
             shape = RoundedCornerShape(0.dp),
-            border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.onBackground),
+            border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.borderColor()),
         ) {
             repeat(DIM) { i ->
                 Row(
@@ -287,11 +326,17 @@ fun Tile(state: TileState, modifier: Modifier = Modifier) =
 
 @Composable
 fun LeftTile(modifier: Modifier = Modifier) =
-    Square(modifier = modifier) { LeftIcon(modifier = Modifier.fillMaxSize()) }
+    Square(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.leftContainer())
+    ) { LeftIcon(modifier = Modifier.fillMaxSize()) }
 
 @Composable
 fun RightTile(modifier: Modifier = Modifier) =
-    Square(modifier = modifier) { RightIcon(modifier = Modifier.fillMaxSize()) }
+    Square(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.rightContainer())
+    ) { RightIcon(modifier = Modifier.fillMaxSize()) }
 
 @Composable
 fun DrawTile(modifier: Modifier = Modifier) =
@@ -299,28 +344,36 @@ fun DrawTile(modifier: Modifier = Modifier) =
         Icon(
             painterResource(id = R.drawable.dash),
             contentDescription = "Draw",
-            tint = MaterialTheme.drawColor(),
+            tint = MaterialTheme.colorScheme.drawColor(),
             modifier = Modifier.fillMaxSize()
         )
     }
 
 @Composable
 fun NoneTile(modifier: Modifier = Modifier) =
-    Square(modifier = modifier.background(MaterialTheme.noneColor())) {}
+    Square(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.noneColor())
+    ) {}
 
 @Composable
-fun Square(modifier: Modifier = Modifier, content: @Composable (ColumnScope.() -> Unit)) = Card(
+fun Square(
+    modifier: Modifier = Modifier,
+    colors: CardColors = CardDefaults.cardColors(),
+    content: @Composable (ColumnScope.() -> Unit)
+) = Card(
     modifier = modifier.aspectRatio(1.0f),
     shape = RoundedCornerShape(0.dp),
-    border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.onBackground),
-    content = content
+    border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.borderColor()),
+    colors = colors,
+    content = content,
 )
 
 @Composable
 fun LeftIcon(modifier: Modifier = Modifier) = Icon(
     painterResource(id = R.drawable.close),
     contentDescription = "Left",
-    tint = MaterialTheme.leftColor(),
+    tint = MaterialTheme.colorScheme.leftColor(),
     modifier = modifier
 )
 
@@ -328,7 +381,7 @@ fun LeftIcon(modifier: Modifier = Modifier) = Icon(
 fun RightIcon(modifier: Modifier = Modifier) = Icon(
     painterResource(id = R.drawable.circle),
     contentDescription = "Right",
-    tint = MaterialTheme.rightColor(),
+    tint = MaterialTheme.colorScheme.rightColor(),
     modifier = modifier
 )
 
