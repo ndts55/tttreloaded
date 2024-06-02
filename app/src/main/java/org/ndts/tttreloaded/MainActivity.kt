@@ -5,10 +5,14 @@ package org.ndts.tttreloaded
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -35,7 +39,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -74,9 +77,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private val colorAnimationSpec: AnimationSpec<Color> =
-    tween(durationMillis = 75, easing = FastOutLinearInEasing)
-
 @Composable
 fun MaterialTheme.leftColor() = this.colorScheme.primary
 
@@ -92,12 +92,6 @@ fun MaterialTheme.drawColor() = this.colorScheme.onBackground
 @Composable
 fun Game() {
     var state by remember { mutableStateOf(GameState()) }
-    val playerIndicatorColor by animateColorAsState(
-        targetValue = when (state.player) {
-            Player.Left -> MaterialTheme.leftColor()
-            Player.Right -> MaterialTheme.rightColor()
-        }, label = "playerColor", animationSpec = colorAnimationSpec
-    )
 
     Scaffold(topBar = {
         TopAppBar(title = {
@@ -113,9 +107,7 @@ fun Game() {
                 Player.Left -> LeftIcon()
                 Player.Right -> RightIcon()
             }
-        }, colors = TopAppBarDefaults.topAppBarColors(
-            navigationIconContentColor = playerIndicatorColor,
-        )
+        }
         )
     }) {
         Column(
@@ -160,76 +152,112 @@ fun OuterBoard(
 @Composable
 fun InnerBoard(
     state: InnerBoardState, modifier: Modifier = Modifier, onTileClick: (Int) -> Unit
+) = AnimatedContent(targetState = state.result, label = "InnerBoardContent",
+    transitionSpec =
+    {
+        (fadeIn(animationSpec = tween(220)) + scaleIn(
+            initialScale = 0.92f,
+            animationSpec = tween(220)
+        )).togetherWith(fadeOut(animationSpec = tween(90)))
+    }
 ) {
-    val overlayColor by animateColorAsState(
-        targetValue = if (state.enabled) Color.Transparent else Color.Black.copy(
-            alpha = 0.25f
-        ), label = "overlayColor", animationSpec = colorAnimationSpec
-    )
-
     Box(Modifier.padding(2.dp)) {
-        when (state.result) {
+        when (it) {
             InnerBoardResult.Left -> LeftTile(
-                modifier = Modifier.border(
+                modifier = modifier.border(
                     width = 1.5.dp,
                     color = MaterialTheme.colorScheme.onBackground
                 )
             )
 
             InnerBoardResult.Right -> RightTile(
-                modifier = Modifier.border(
+                modifier = modifier.border(
                     width = 1.5.dp,
                     color = MaterialTheme.colorScheme.onBackground
                 )
             )
 
             InnerBoardResult.Draw -> DrawTile(
-                modifier = Modifier.border(
+                modifier = modifier.border(
                     width = 1.5.dp,
                     color = MaterialTheme.colorScheme.onBackground
                 )
             )
 
-            InnerBoardResult.None -> {
-                Card(
-                    modifier = modifier
-                        .aspectRatio(1.0f)
-                        .fillMaxSize(),
-                    shape = RoundedCornerShape(0.dp),
-                    border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.onBackground),
-                ) {
-                    repeat(DIM) { i ->
-                        Row(
-                            modifier = Modifier
-                                .weight(1.0F)
-                                .fillMaxHeight(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center,
-                        ) {
-                            repeat(DIM) { j ->
-                                val tileId = i * DIM + j
-                                Tile(state = state.tiles[tileId],
-                                    modifier = Modifier
-                                        .weight(1.0F)
-                                        .clickable(enabled = state.enabled) { onTileClick(tileId) })
-                            }
-                        }
-                    }
-                }
-                Canvas(modifier = Modifier.matchParentSize()) {
-                    drawRect(overlayColor)
-                }
-            }
+            InnerBoardResult.None -> Board(
+                modifier = modifier,
+                tileStates = state.tiles,
+                enabled = state.enabled,
+                onTileClick = onTileClick
+            )
         }
     }
 }
 
 @Composable
-fun Tile(state: TileState, modifier: Modifier = Modifier) = when (state) {
-    TileState.Left -> LeftTile(modifier = modifier)
-    TileState.Right -> RightTile(modifier = modifier)
-    TileState.None -> NoneTile(modifier = modifier)
+fun Board(
+    modifier: Modifier = Modifier,
+    tileStates: Array<TileState>,
+    enabled: Boolean,
+    onTileClick: (Int) -> Unit
+) {
+    val overlayColor by animateColorAsState(
+        targetValue = if (enabled) Color.Transparent else Color.Black.copy(
+            alpha = 0.25f
+        ),
+        label = "overlayColor",
+        animationSpec = tween(durationMillis = 75, easing = FastOutLinearInEasing, delayMillis = 90)
+    )
+    Box {
+        Card(
+            modifier = modifier
+                .aspectRatio(1.0f)
+                .fillMaxSize(),
+            shape = RoundedCornerShape(0.dp),
+            border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.onBackground),
+        ) {
+            repeat(DIM) { i ->
+                Row(
+                    modifier = Modifier
+                        .weight(1.0F)
+                        .fillMaxHeight(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                ) {
+                    repeat(DIM) { j ->
+                        val tileId = i * DIM + j
+                        Tile(state = tileStates[tileId],
+                            modifier = Modifier
+                                .weight(1.0F)
+                                .clickable(enabled = enabled) { onTileClick(tileId) })
+                    }
+                }
+            }
+        }
+        Canvas(modifier = Modifier.matchParentSize()) {
+            drawRect(overlayColor)
+        }
+    }
 }
+
+@Composable
+fun Tile(state: TileState, modifier: Modifier = Modifier) =
+    AnimatedContent(targetState = state, label = "TileContent",
+        transitionSpec =
+        {
+            (fadeIn(animationSpec = tween(220)) + scaleIn(
+                initialScale = 0.92f,
+                animationSpec = tween(220)
+            )).togetherWith(fadeOut(animationSpec = tween(90)))
+        }
+
+    ) {
+        when (it) {
+            TileState.Left -> LeftTile(modifier = modifier)
+            TileState.Right -> RightTile(modifier = modifier)
+            TileState.None -> NoneTile(modifier = modifier)
+        }
+    }
 
 @Composable
 fun LeftTile(modifier: Modifier = Modifier) =
