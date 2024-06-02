@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,6 +39,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -78,10 +80,10 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun MaterialTheme.leftColor() = this.colorScheme.primary
+fun MaterialTheme.leftColor() = Color.Red
 
 @Composable
-fun MaterialTheme.rightColor() = this.colorScheme.secondary
+fun MaterialTheme.rightColor() = Color.Blue
 
 @Composable
 fun MaterialTheme.noneColor() = this.colorScheme.background
@@ -119,12 +121,36 @@ fun Game() {
                 state = state.apply(PlayEvent(state.player, boardId, tileId))
             }
             Spacer(modifier = Modifier.height(20.dp))
+
+            var showDialog by remember { mutableStateOf(false) }
             Button(
-                onClick = { state = GameState() },
-                enabled = state.outerBoardState.result != OuterBoardResult.None
+                onClick = {
+                    when (state.outerBoardState.result) {
+                        OuterBoardResult.Left, OuterBoardResult.Right, OuterBoardResult.Draw -> state =
+                            GameState()
+
+                        else -> showDialog = true
+                    }
+                },
             ) {
                 Text(text = "Reset")
             }
+            if (showDialog) AlertDialog(
+                onDismissRequest = { showDialog = false },
+                title = { Text(text = "Really?") },
+                text = { Text(text = "Reset the game state?") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showDialog = false
+                        state = GameState()
+                    }) { Text(text = "Yes") }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        showDialog = false
+                    }) { Text(text = "No") }
+                }
+            )
         }
     }
 }
