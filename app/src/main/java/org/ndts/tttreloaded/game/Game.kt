@@ -176,8 +176,8 @@ enum class Player {
     }
 
     override fun toString(): String = when (this) {
-        Left -> "Red"
-        Right -> "Blue"
+        Left -> "Cross"
+        Right -> "Circles"
     }
 }
 
