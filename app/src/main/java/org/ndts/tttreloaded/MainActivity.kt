@@ -7,7 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -109,6 +109,9 @@ fun ColorScheme.drawColor() = onBackground
 
 @Composable
 fun ColorScheme.borderColor() = outline
+
+@Composable
+fun ColorScheme.borderHighlightColor() = onBackground
 
 @Composable
 fun Game() {
@@ -223,7 +226,7 @@ fun InnerBoard(
         (fadeIn(animationSpec = tween(220)) + scaleIn(
             initialScale = 0.92f,
             animationSpec = tween(220)
-        )).togetherWith(fadeOut(animationSpec = tween(90)))
+        )).togetherWith(fadeOut(animationSpec = tween(150)))
     }
 ) {
     Box(Modifier.padding(2.dp)) {
@@ -250,7 +253,6 @@ fun InnerBoard(
             )
 
             InnerBoardResult.None -> Board(
-                modifier = modifier,
                 tileStates = state.tiles,
                 enabled = state.enabled,
                 onTileClick = onTileClick
@@ -271,7 +273,17 @@ fun Board(
             alpha = 0.25f
         ),
         label = "overlayColor",
-        animationSpec = tween(durationMillis = 75, easing = FastOutLinearInEasing, delayMillis = 90)
+        animationSpec = tween(durationMillis = 250, delayMillis = 150)
+    )
+    val outerBorderColor by animateColorAsState(
+        targetValue = if (enabled) MaterialTheme.colorScheme.borderHighlightColor() else MaterialTheme.colorScheme.borderColor(),
+        label = "outerBorderColor",
+        animationSpec = tween(durationMillis = 250, delayMillis = 150)
+    )
+    val outerBorderWidth by animateDpAsState(
+        targetValue = if (enabled) 2.5.dp else 1.5.dp,
+        label = "outerBorderWidth",
+        animationSpec = tween(durationMillis = 250, delayMillis = 150)
     )
     Box {
         Card(
@@ -279,7 +291,7 @@ fun Board(
                 .aspectRatio(1.0f)
                 .fillMaxSize(),
             shape = RoundedCornerShape(0.dp),
-            border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.borderColor()),
+            border = BorderStroke(outerBorderWidth, outerBorderColor),
         ) {
             repeat(DIM) { i ->
                 Row(
@@ -313,7 +325,7 @@ fun Tile(state: TileState, modifier: Modifier = Modifier) =
             (fadeIn(animationSpec = tween(220)) + scaleIn(
                 initialScale = 0.92f,
                 animationSpec = tween(220)
-            )).togetherWith(fadeOut(animationSpec = tween(90)))
+            )).togetherWith(fadeOut(animationSpec = tween(100)))
         }
 
     ) {
