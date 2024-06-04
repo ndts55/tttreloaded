@@ -49,13 +49,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.google.gson.Gson
 import org.ndts.tttreloaded.game.DIM
 import org.ndts.tttreloaded.game.GameState
 import org.ndts.tttreloaded.game.InnerBoardResult
@@ -68,19 +69,42 @@ import org.ndts.tttreloaded.game.TileState
 import org.ndts.tttreloaded.ui.theme.TTTReloadedTheme
 
 class MainActivity : ComponentActivity() {
+    private val tag = "TTTReloaded"
+    private val stateKey = "GameState"
+    private lateinit var _state: GameState
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        loadState()
         setContent {
             TTTReloadedTheme {
                 // A surface container using the 'background' color from the theme
                 Surface(
                     modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
                 ) {
-                    Game()
+                    var state by rememberSaveable { mutableStateOf(_state) }
+                    GameView(state,
+                        onPlayEvent = { state = state.apply(it) },
+                        onReset = { state = GameState() })
                 }
             }
         }
     }
+
+    override fun onPause() {
+        super.onPause()
+        saveState()
+    }
+
+    private fun saveState() =
+        getSharedPreferences(tag, MODE_PRIVATE).edit().also {
+            it.putString(stateKey, Gson().toJson(_state))
+            it.apply()
+        }
+
+    private fun loadState() =
+        getSharedPreferences(tag, MODE_PRIVATE).getString(stateKey, null).also {
+            _state = if (it != null) Gson().fromJson(it, GameState::class.java) else GameState()
+        }
 }
 
 @Composable
@@ -114,34 +138,30 @@ fun ColorScheme.borderColor() = outline
 fun ColorScheme.borderHighlightColor() = onBackground
 
 @Composable
-fun Game() {
-    var state by remember { mutableStateOf(GameState()) }
-
+fun GameView(state: GameState, onPlayEvent: (PlayEvent) -> Unit, onReset: () -> Unit) {
     Scaffold(topBar = {
         TopAppBar(title = {
             Text(
                 text = when (state.outerBoardState.result) {
-                    OuterBoardResult.Left, OuterBoardResult.Right -> "${state.player} wins"
+                    OuterBoardResult.Cross, OuterBoardResult.Circle -> "${state.player} wins"
                     OuterBoardResult.None -> "TTT Reloaded"
                     OuterBoardResult.Draw -> "Draw"
                 }
             )
         }, navigationIcon = {
             when (state.player) {
-                Player.Left -> LeftIcon()
-                Player.Right -> RightIcon()
+                Player.Cross -> LeftIcon()
+                Player.Circle -> RightIcon()
             }
-        },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = when (state.player) {
-                    Player.Left -> MaterialTheme.colorScheme.leftContainer()
-                    Player.Right -> MaterialTheme.colorScheme.rightContainer()
-                },
-                titleContentColor = when (state.player) {
-                    Player.Left -> MaterialTheme.colorScheme.onLeftContainer()
-                    Player.Right -> MaterialTheme.colorScheme.onRightContainer()
-                }
-            )
+        }, colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = when (state.player) {
+                Player.Cross -> MaterialTheme.colorScheme.leftContainer()
+                Player.Circle -> MaterialTheme.colorScheme.rightContainer()
+            }, titleContentColor = when (state.player) {
+                Player.Cross -> MaterialTheme.colorScheme.onLeftContainer()
+                Player.Circle -> MaterialTheme.colorScheme.onRightContainer()
+            }
+        )
         )
     }) {
         Column(
@@ -150,7 +170,7 @@ fun Game() {
             OuterBoard(
                 modifier = Modifier.padding(it), state = state.outerBoardState
             ) { boardId, tileId ->
-                state = state.apply(PlayEvent(state.player, boardId, tileId))
+                onPlayEvent(PlayEvent(state.player, boardId, tileId))
             }
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -158,41 +178,35 @@ fun Game() {
             Button(
                 onClick = {
                     when (state.outerBoardState.result) {
-                        OuterBoardResult.Left, OuterBoardResult.Right, OuterBoardResult.Draw -> state =
-                            GameState()
-
+                        OuterBoardResult.Cross, OuterBoardResult.Circle, OuterBoardResult.Draw -> onReset()
                         else -> showDialog = true
                     }
-                },
-                colors = ButtonDefaults.buttonColors(
+                }, colors = ButtonDefaults.buttonColors(
                     containerColor = when (state.player) {
-                        Player.Left -> MaterialTheme.colorScheme.leftContainer()
-                        Player.Right -> MaterialTheme.colorScheme.rightContainer()
-                    },
-                    contentColor = when (state.player) {
-                        Player.Left -> MaterialTheme.colorScheme.onLeftContainer()
-                        Player.Right -> MaterialTheme.colorScheme.onRightContainer()
+                        Player.Cross -> MaterialTheme.colorScheme.leftContainer()
+                        Player.Circle -> MaterialTheme.colorScheme.rightContainer()
+                    }, contentColor = when (state.player) {
+                        Player.Cross -> MaterialTheme.colorScheme.onLeftContainer()
+                        Player.Circle -> MaterialTheme.colorScheme.onRightContainer()
                     }
                 )
             ) {
                 Text(text = "Reset")
             }
-            if (showDialog) AlertDialog(
-                onDismissRequest = { showDialog = false },
+            if (showDialog) AlertDialog(onDismissRequest = { showDialog = false },
                 title = { Text(text = "Really?") },
                 text = { Text(text = "Reset the game state?") },
                 confirmButton = {
                     TextButton(onClick = {
                         showDialog = false
-                        state = GameState()
+                        onReset()
                     }) { Text(text = "Yes") }
                 },
                 dismissButton = {
                     TextButton(onClick = {
                         showDialog = false
                     }) { Text(text = "No") }
-                }
-            )
+                })
         }
     }
 }
@@ -220,49 +234,40 @@ fun OuterBoard(
 @Composable
 fun InnerBoard(
     state: InnerBoardState, modifier: Modifier = Modifier, onTileClick: (Int) -> Unit
-) = AnimatedContent(targetState = state.result, label = "InnerBoardContent",
-    transitionSpec =
-    {
-        (fadeIn(animationSpec = tween(220)) + scaleIn(
-            initialScale = 0.92f,
-            animationSpec = tween(220)
-        )).togetherWith(fadeOut(animationSpec = tween(150)))
-    }
-) {
+) = AnimatedContent(targetState = state.result, label = "InnerBoardContent", transitionSpec = {
+    (fadeIn(animationSpec = tween(220)) + scaleIn(
+        initialScale = 0.92f, animationSpec = tween(220)
+    )).togetherWith(fadeOut(animationSpec = tween(150)))
+}) {
     Box(Modifier.padding(2.dp)) {
         when (it) {
-            InnerBoardResult.Left -> LeftTile(
+            InnerBoardResult.Cross -> LeftTile(
                 modifier = modifier.border(
-                    width = 1.5.dp,
-                    color = MaterialTheme.colorScheme.borderColor()
+                    width = 1.5.dp, color = MaterialTheme.colorScheme.borderColor()
                 )
             )
 
-            InnerBoardResult.Right -> RightTile(
+            InnerBoardResult.Circle -> RightTile(
                 modifier = modifier.border(
-                    width = 1.5.dp,
-                    color = MaterialTheme.colorScheme.borderColor()
+                    width = 1.5.dp, color = MaterialTheme.colorScheme.borderColor()
                 )
             )
 
             InnerBoardResult.Draw -> DrawTile(
                 modifier = modifier.border(
-                    width = 1.5.dp,
-                    color = MaterialTheme.colorScheme.borderColor()
+                    width = 1.5.dp, color = MaterialTheme.colorScheme.borderColor()
                 )
             )
 
-            InnerBoardResult.None -> Board(
-                tileStates = state.tiles,
-                enabled = state.enabled,
-                onTileClick = onTileClick
+            InnerBoardResult.None -> InnerBoard(
+                tileStates = state.tiles, enabled = state.enabled, onTileClick = onTileClick
             )
         }
     }
 }
 
 @Composable
-fun Board(
+fun InnerBoard(
     modifier: Modifier = Modifier,
     tileStates: Array<TileState>,
     enabled: Boolean,
@@ -271,9 +276,7 @@ fun Board(
     val overlayColor by animateColorAsState(
         targetValue = if (enabled) Color.Transparent else Color.Black.copy(
             alpha = 0.25f
-        ),
-        label = "overlayColor",
-        animationSpec = tween(durationMillis = 250, delayMillis = 150)
+        ), label = "overlayColor", animationSpec = tween(durationMillis = 250, delayMillis = 150)
     )
     val outerBorderColor by animateColorAsState(
         targetValue = if (enabled) MaterialTheme.colorScheme.borderHighlightColor() else MaterialTheme.colorScheme.borderColor(),
@@ -319,54 +322,47 @@ fun Board(
 
 @Composable
 fun Tile(state: TileState, modifier: Modifier = Modifier) =
-    AnimatedContent(targetState = state, label = "TileContent",
-        transitionSpec =
-        {
-            (fadeIn(animationSpec = tween(220)) + scaleIn(
-                initialScale = 0.92f,
-                animationSpec = tween(220)
-            )).togetherWith(fadeOut(animationSpec = tween(100)))
-        }
+    AnimatedContent(targetState = state, label = "TileContent", transitionSpec = {
+        (fadeIn(animationSpec = tween(220)) + scaleIn(
+            initialScale = 0.92f, animationSpec = tween(220)
+        )).togetherWith(fadeOut(animationSpec = tween(100)))
+    }
 
     ) {
         when (it) {
-            TileState.Left -> LeftTile(modifier = modifier)
-            TileState.Right -> RightTile(modifier = modifier)
+            TileState.Cross -> LeftTile(modifier = modifier)
+            TileState.Circle -> RightTile(modifier = modifier)
             TileState.None -> NoneTile(modifier = modifier)
         }
     }
 
 @Composable
-fun LeftTile(modifier: Modifier = Modifier) =
-    Square(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.leftContainer())
-    ) { LeftIcon(modifier = Modifier.fillMaxSize()) }
+fun LeftTile(modifier: Modifier = Modifier) = Square(
+    modifier = modifier,
+    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.leftContainer())
+) { LeftIcon(modifier = Modifier.fillMaxSize()) }
 
 @Composable
-fun RightTile(modifier: Modifier = Modifier) =
-    Square(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.rightContainer())
-    ) { RightIcon(modifier = Modifier.fillMaxSize()) }
+fun RightTile(modifier: Modifier = Modifier) = Square(
+    modifier = modifier,
+    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.rightContainer())
+) { RightIcon(modifier = Modifier.fillMaxSize()) }
 
 @Composable
-fun DrawTile(modifier: Modifier = Modifier) =
-    Square(modifier = modifier) {
-        Icon(
-            painterResource(id = R.drawable.dash),
-            contentDescription = "Draw",
-            tint = MaterialTheme.colorScheme.drawColor(),
-            modifier = Modifier.fillMaxSize()
-        )
-    }
+fun DrawTile(modifier: Modifier = Modifier) = Square(modifier = modifier) {
+    Icon(
+        painterResource(id = R.drawable.dash),
+        contentDescription = "Draw",
+        tint = MaterialTheme.colorScheme.drawColor(),
+        modifier = Modifier.fillMaxSize()
+    )
+}
 
 @Composable
-fun NoneTile(modifier: Modifier = Modifier) =
-    Square(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.noneColor())
-    ) {}
+fun NoneTile(modifier: Modifier = Modifier) = Square(
+    modifier = modifier,
+    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.noneColor())
+) {}
 
 @Composable
 fun Square(
@@ -396,11 +392,3 @@ fun RightIcon(modifier: Modifier = Modifier) = Icon(
     tint = MaterialTheme.colorScheme.rightColor(),
     modifier = modifier
 )
-
-@Preview(showBackground = true)
-@Composable
-fun Preview() {
-    TTTReloadedTheme {
-        Game()
-    }
-}

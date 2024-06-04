@@ -2,6 +2,7 @@ package org.ndts.tttreloaded.game
 
 import org.ndts.tttreloaded.game.InnerBoardResult.Draw
 import org.ndts.tttreloaded.game.InnerBoardResult.None
+import java.io.Serializable
 
 const val DIM = 3
 const val DD = DIM * DIM
@@ -24,22 +25,22 @@ private fun <T> checkDraw(arr: Array<T>, none: T): Boolean = arr.none { it == no
 
 // region State
 enum class TileState {
-    Left, Right, None
+    Cross, Circle, None
 }
 
 enum class InnerBoardResult {
-    Left, Right, None, Draw;
+    Cross, Circle, None, Draw;
 }
 
 enum class OuterBoardResult {
-    Left, Right, None, Draw;
+    Cross, Circle, None, Draw;
 }
 
 data class InnerBoardState(
     val result: InnerBoardResult,
     val tiles: Array<TileState>,
     val enabled: Boolean
-) {
+) : Serializable {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
@@ -63,7 +64,7 @@ data class InnerBoardState(
 
 data class OuterBoardState(
     val result: OuterBoardResult, val innerBoards: Array<InnerBoardState>
-) {
+) : Serializable {
     fun apply(event: PlayEvent): OuterBoardState {
         // Is it even valid to have clicked on the specified tile?
         if (result != OuterBoardResult.None
@@ -129,14 +130,14 @@ data class OuterBoardState(
 }
 
 data class GameState(
-    val player: Player = Player.Left, val outerBoardState: OuterBoardState = OuterBoardState(
+    val player: Player = Player.Cross, val outerBoardState: OuterBoardState = OuterBoardState(
         OuterBoardResult.None, (0 until DD).map {
             InnerBoardState(
                 None, (0 until DD).map { TileState.None }.toTypedArray(), true
             )
         }.toTypedArray()
     )
-) {
+) : Serializable {
     fun apply(event: PlayEvent): GameState {
         if (event.player != player) return this
         val nextOuterBoardState = outerBoardState.apply(event)
@@ -153,33 +154,28 @@ data class GameState(
 
 // region Events
 enum class Player {
-    Left, Right;
+    Cross, Circle;
 
     fun next(): Player = when (this) {
-        Left -> Right
-        Right -> Left
+        Cross -> Circle
+        Circle -> Cross
     }
 
     fun ts(): TileState = when (this) {
-        Left -> TileState.Left
-        Right -> TileState.Right
+        Cross -> TileState.Cross
+        Circle -> TileState.Circle
     }
 
     fun ibr(): InnerBoardResult = when (this) {
-        Left -> InnerBoardResult.Left
-        Right -> InnerBoardResult.Right
+        Cross -> InnerBoardResult.Cross
+        Circle -> InnerBoardResult.Circle
     }
 
     fun obr(): OuterBoardResult = when (this) {
-        Left -> OuterBoardResult.Left
-        Right -> OuterBoardResult.Right
-    }
-
-    override fun toString(): String = when (this) {
-        Left -> "Cross"
-        Right -> "Circles"
+        Cross -> OuterBoardResult.Cross
+        Circle -> OuterBoardResult.Circle
     }
 }
 
-data class PlayEvent(val player: Player, val boardId: Int, val tileId: Int)
+data class PlayEvent(val player: Player, val boardId: Int, val tileId: Int) : Serializable
 // endregion
