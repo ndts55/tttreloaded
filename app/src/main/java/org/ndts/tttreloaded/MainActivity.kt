@@ -57,16 +57,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.google.gson.Gson
-import org.ndts.tttreloaded.game.DIM
-import org.ndts.tttreloaded.game.GameState
-import org.ndts.tttreloaded.game.InnerBoardResult
-import org.ndts.tttreloaded.game.InnerBoardState
-import org.ndts.tttreloaded.game.OuterBoardResult
-import org.ndts.tttreloaded.game.OuterBoardState
-import org.ndts.tttreloaded.game.PlayEvent
-import org.ndts.tttreloaded.game.Player
-import org.ndts.tttreloaded.game.TileState
 import org.ndts.tttreloaded.ui.theme.TTTReloadedTheme
+import org.ndts.tttrlib.DIM
+import org.ndts.tttrlib.GameState
+import org.ndts.tttrlib.InnerBoardResult
+import org.ndts.tttrlib.InnerBoardState
+import org.ndts.tttrlib.OuterBoardResult
+import org.ndts.tttrlib.OuterBoardState
+import org.ndts.tttrlib.PlayEvent
+import org.ndts.tttrlib.Player
+import org.ndts.tttrlib.TileState
 
 class MainActivity : ComponentActivity() {
     private val tag = "TTTReloaded"

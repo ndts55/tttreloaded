@@ -21,3 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "tttreloaded"
 include(":app")
+include(":tttrlib")

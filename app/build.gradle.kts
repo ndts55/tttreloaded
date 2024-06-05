@@ -50,6 +50,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":tttrlib"))
     implementation(libs.gson)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

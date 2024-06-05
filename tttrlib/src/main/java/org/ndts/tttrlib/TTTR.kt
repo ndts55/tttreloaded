@@ -1,7 +1,5 @@
-package org.ndts.tttreloaded.game
+package org.ndts.tttrlib
 
-import org.ndts.tttreloaded.game.InnerBoardResult.Draw
-import org.ndts.tttreloaded.game.InnerBoardResult.None
 import java.io.Serializable
 
 const val DIM = 3
@@ -69,7 +67,7 @@ data class OuterBoardState(
         // Is it even valid to have clicked on the specified tile?
         if (result != OuterBoardResult.None
             || !innerBoards[event.boardId].enabled
-            || innerBoards[event.boardId].result != None
+            || innerBoards[event.boardId].result != InnerBoardResult.None
             || innerBoards[event.boardId].tiles[event.tileId] != TileState.None
         ) return this
         val nextTiles = innerBoards[event.boardId].tiles.clone()
@@ -78,14 +76,15 @@ data class OuterBoardState(
             arr = nextTiles,
             player = event.player.ts(),
             none = TileState.None,
-            drawResult = Draw,
-            noneResult = None,
+            drawResult = InnerBoardResult.Draw,
+            noneResult = InnerBoardResult.None,
             lineResult = event.player.ibr()
         )
         val constructIsEnabled = {
             val relevantBoardResult =
                 if (event.boardId == event.tileId) nextInnerBoardResult else innerBoards[event.tileId].result
-            val nextEnabledBoardId = if (relevantBoardResult == None) event.tileId else null
+            val nextEnabledBoardId =
+                if (relevantBoardResult == InnerBoardResult.None) event.tileId else null
             { bid: Int -> nextEnabledBoardId == null || bid == nextEnabledBoardId }
         }
         val isEnabled = constructIsEnabled()
@@ -102,7 +101,7 @@ data class OuterBoardState(
         val nextOuterBoardResult = getResult(
             arr = nextInnerBoards.map { it.result }.toTypedArray(),
             player = event.player.ibr(),
-            none = None,
+            none = InnerBoardResult.None,
             drawResult = OuterBoardResult.Draw,
             noneResult = OuterBoardResult.None,
             lineResult = event.player.obr()
@@ -133,7 +132,7 @@ data class GameState(
     val player: Player = Player.Cross, val outerBoardState: OuterBoardState = OuterBoardState(
         OuterBoardResult.None, (0 until DD).map {
             InnerBoardState(
-                None, (0 until DD).map { TileState.None }.toTypedArray(), true
+                InnerBoardResult.None, (0 until DD).map { TileState.None }.toTypedArray(), true
             )
         }.toTypedArray()
     )
