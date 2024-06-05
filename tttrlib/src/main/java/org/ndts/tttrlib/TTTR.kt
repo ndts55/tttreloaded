@@ -5,33 +5,6 @@ import java.io.Serializable
 const val DIM = 3
 const val DD = DIM * DIM
 
-// region Utils
-private fun <T, R> getResult(
-    arr: Array<T>, player: T, none: T, drawResult: R, noneResult: R, lineResult: R
-): R = when {
-    checkLines(arr, player) -> lineResult
-    checkDraw(arr, none) -> drawResult
-    else -> noneResult
-}
-
-private fun <T, R> getResultAndLine(
-    arr: Array<T>,
-    player: T,
-    none: T,
-    drawResult: R,
-    noneResult: R,
-    lineResult: R
-): Pair<R, Array<Int>?> {
-    val line = getMatchingLine(arr, player)
-    if (line != null) return Pair(lineResult, line)
-    return Pair(
-        when {
-            checkDraw(arr, none) -> drawResult
-            else -> noneResult
-        }, null
-    )
-}
-
 private val lineIndices: Array<Array<Int>> = arrayOf(
     *(0 until DIM).map { i -> (0 until DIM).map { j -> i * DIM + j }.toTypedArray<Int>() }
         .toTypedArray<Array<Int>>(),
@@ -102,24 +75,25 @@ data class OuterBoardState(
         ) return this
         val nextTiles = innerBoards[event.boardId].tiles.clone()
         nextTiles[event.tileId] = event.player.ts()
-        val nextInnerBoardResult = getResult(
-            arr = nextTiles,
-            player = event.player.ts(),
-            none = TileState.None,
-            drawResult = InnerBoardResult.Draw,
-            noneResult = InnerBoardResult.None,
-            lineResult = event.player.ibr()
-        )
-        val (nextOuterBoardResult, line) = getResultAndLine(
-            arr = innerBoards.mapIndexed { boardId, innerBoardState ->
+
+        val nextInnerBoardResult = when {
+            checkLines(nextTiles, event.player.ts()) -> event.player.ibr()
+            checkDraw(nextTiles, TileState.None) -> InnerBoardResult.Draw
+            else -> InnerBoardResult.None
+        }
+
+        val (nextOuterBoardResult, line) =
+            innerBoards.mapIndexed { boardId, innerBoardState ->
                 if (boardId == event.boardId) nextInnerBoardResult else innerBoardState.result
-            }.toTypedArray(),
-            player = event.player.ibr(),
-            none = InnerBoardResult.None,
-            drawResult = OuterBoardResult.Draw,
-            noneResult = OuterBoardResult.None,
-            lineResult = event.player.obr()
-        )
+            }.toTypedArray().let { arr ->
+                val line = getMatchingLine(arr, event.player.ibr())
+                when {
+                    line != null -> Pair(event.player.obr(), line)
+                    checkDraw(arr, InnerBoardResult.None) -> Pair(OuterBoardResult.Draw, null)
+                    else -> Pair(OuterBoardResult.None, null)
+                }
+            }
+
         val isEnabled = when (nextOuterBoardResult) {
             OuterBoardResult.Cross,
             OuterBoardResult.Circle,
