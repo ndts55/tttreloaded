@@ -57,7 +57,8 @@ android {
 }
 
 dependencies {
-    implementation(project(":tttrlib"))
+//    implementation(project(":tttrlib"))
+    implementation("com.github.ndts55:tttrlib:main-SNAPSHOT")
     implementation(libs.gson)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
