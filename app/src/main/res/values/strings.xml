@@ -1,3 +1,14 @@
 <resources>
-    <string name="app_name">tttreloaded</string>
+    <string name="app_name" translatable="false">TTT Reloaded</string>
+    <string name="draw_title">Draw</string>
+    <string name="cross_wins_title">Xs Win</string>
+    <string name="circle_wins_title">Os Win</string>
+    <string name="reset_game_question">Reset the game state?</string>
+    <string name="confirmation_question">Really?</string>
+    <string name="confirmation_button">Yes</string>
+    <string name="rejection_button">No</string>
+    <string name="cross_content_description" translatable="false">X</string>
+    <string name="circle_content_description" translatable="false">O</string>
+    <string name="reset_button_text">Reset</string>
+    <string name="draw_content_description">Draw</string>
 </resources>

@@ -55,6 +55,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.google.gson.Gson
 import org.ndts.tttreloaded.ui.theme.TTTReloadedTheme
@@ -143,15 +144,16 @@ fun GameView(state: GameState, onPlayEvent: (PlayEvent) -> Unit, onReset: () -> 
         TopAppBar(title = {
             Text(
                 text = when (state.outerBoardState.result) {
-                    OuterBoardResult.Cross, OuterBoardResult.Circle -> "${state.player} wins"
-                    OuterBoardResult.None -> "TTT Reloaded"
-                    OuterBoardResult.Draw -> "Draw"
+                    OuterBoardResult.Cross -> stringResource(id = R.string.cross_wins_title)
+                    OuterBoardResult.Circle -> stringResource(id = R.string.circle_wins_title)
+                    OuterBoardResult.None -> stringResource(id = R.string.app_name)
+                    OuterBoardResult.Draw -> stringResource(id = R.string.draw_title)
                 }
             )
         }, navigationIcon = {
             when (state.player) {
-                Player.Cross -> LeftIcon()
-                Player.Circle -> RightIcon()
+                Player.Cross -> CrossIcon()
+                Player.Circle -> CircleIcon()
             }
         }, colors = TopAppBarDefaults.topAppBarColors(
             containerColor = when (state.player) {
@@ -191,21 +193,21 @@ fun GameView(state: GameState, onPlayEvent: (PlayEvent) -> Unit, onReset: () -> 
                     }
                 )
             ) {
-                Text(text = "Reset")
+                Text(text = stringResource(id = R.string.reset_button_text))
             }
             if (showDialog) AlertDialog(onDismissRequest = { showDialog = false },
-                title = { Text(text = "Really?") },
-                text = { Text(text = "Reset the game state?") },
+                title = { Text(text = stringResource(id = R.string.confirmation_question)) },
+                text = { Text(text = stringResource(id = R.string.reset_game_question)) },
                 confirmButton = {
                     TextButton(onClick = {
                         showDialog = false
                         onReset()
-                    }) { Text(text = "Yes") }
+                    }) { Text(text = stringResource(id = R.string.confirmation_button)) }
                 },
                 dismissButton = {
                     TextButton(onClick = {
                         showDialog = false
-                    }) { Text(text = "No") }
+                    }) { Text(text = stringResource(id = R.string.rejection_button)) }
                 })
         }
     }
@@ -241,13 +243,13 @@ fun InnerBoard(
 }) {
     Box(Modifier.padding(2.dp)) {
         when (it) {
-            InnerBoardResult.Cross -> LeftTile(
+            InnerBoardResult.Cross -> CrossTile(
                 modifier = modifier.border(
                     width = 1.5.dp, color = MaterialTheme.colorScheme.borderColor()
                 )
             )
 
-            InnerBoardResult.Circle -> RightTile(
+            InnerBoardResult.Circle -> CircleTile(
                 modifier = modifier.border(
                     width = 1.5.dp, color = MaterialTheme.colorScheme.borderColor()
                 )
@@ -330,29 +332,29 @@ fun Tile(state: TileState, modifier: Modifier = Modifier) =
 
     ) {
         when (it) {
-            TileState.Cross -> LeftTile(modifier = modifier)
-            TileState.Circle -> RightTile(modifier = modifier)
+            TileState.Cross -> CrossTile(modifier = modifier)
+            TileState.Circle -> CircleTile(modifier = modifier)
             TileState.None -> NoneTile(modifier = modifier)
         }
     }
 
 @Composable
-fun LeftTile(modifier: Modifier = Modifier) = Square(
+fun CrossTile(modifier: Modifier = Modifier) = Square(
     modifier = modifier,
     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.crossContainer())
-) { LeftIcon(modifier = Modifier.fillMaxSize()) }
+) { CrossIcon(modifier = Modifier.fillMaxSize()) }
 
 @Composable
-fun RightTile(modifier: Modifier = Modifier) = Square(
+fun CircleTile(modifier: Modifier = Modifier) = Square(
     modifier = modifier,
     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.circleContainer())
-) { RightIcon(modifier = Modifier.fillMaxSize()) }
+) { CircleIcon(modifier = Modifier.fillMaxSize()) }
 
 @Composable
 fun DrawTile(modifier: Modifier = Modifier) = Square(modifier = modifier) {
     Icon(
         painterResource(id = R.drawable.dash),
-        contentDescription = "Draw",
+        contentDescription = stringResource(id = R.string.draw_content_description),
         tint = MaterialTheme.colorScheme.drawColor(),
         modifier = Modifier.fillMaxSize()
     )
@@ -378,17 +380,17 @@ fun Square(
 )
 
 @Composable
-fun LeftIcon(modifier: Modifier = Modifier) = Icon(
+fun CrossIcon(modifier: Modifier = Modifier) = Icon(
     painterResource(id = R.drawable.close),
-    contentDescription = "Cross",
+    contentDescription = stringResource(id = R.string.cross_content_description),
     tint = MaterialTheme.colorScheme.cross(),
     modifier = modifier
 )
 
 @Composable
-fun RightIcon(modifier: Modifier = Modifier) = Icon(
+fun CircleIcon(modifier: Modifier = Modifier) = Icon(
     painterResource(id = R.drawable.circle),
-    contentDescription = "Circle",
+    contentDescription = stringResource(id = R.string.circle_content_description),
     tint = MaterialTheme.colorScheme.circle(),
     modifier = modifier
 )

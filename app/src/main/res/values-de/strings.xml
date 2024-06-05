@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="draw_title">Unentschieden</string>
+    <string name="cross_wins_title">X gewinnt</string>
+    <string name="circle_wins_title">O gewinnt</string>
+    <string name="reset_game_question">Spielstand zurücksetzen?</string>
+    <string name="confirmation_question">Sicher?</string>
+    <string name="confirmation_button">Ja</string>
+    <string name="rejection_button">Nein</string>
+    <string name="reset_button_text">Zurücksetzen</string>
+    <string name="draw_content_description">Unentschieden</string>
+</resources>
