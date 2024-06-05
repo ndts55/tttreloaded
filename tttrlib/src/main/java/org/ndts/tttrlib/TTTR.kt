@@ -14,11 +14,40 @@ private fun <T, R> getResult(
     else -> noneResult
 }
 
-private fun <T> checkLines(arr: Array<T>, desired: T): Boolean = (0 until DIM).any { i ->
-    (0 until DIM).all { j -> arr[i * DIM + j] == desired } || (0 until DIM).all { j -> arr[j * DIM + i] == desired }
-} || (0 until DIM).all { arr[it * DIM + it] == desired } || (0 until DIM).all { arr[(DIM - it - 1) * DIM + it] == desired }
+private fun <T, R> getResultAndLine(
+    arr: Array<T>,
+    player: T,
+    none: T,
+    drawResult: R,
+    noneResult: R,
+    lineResult: R
+): Pair<R, Array<Int>?> {
+    val line = getMatchingLine(arr, player)
+    if (line != null) return Pair(lineResult, line)
+    return Pair(
+        when {
+            checkDraw(arr, none) -> drawResult
+            else -> noneResult
+        }, null
+    )
+}
+
+private val lineIndices: Array<Array<Int>> = arrayOf(
+    *(0 until DIM).map { i -> (0 until DIM).map { j -> i * DIM + j }.toTypedArray<Int>() }
+        .toTypedArray<Array<Int>>(),
+    *(0 until DIM).map { i -> (0 until DIM).map { j -> j * DIM + i }.toTypedArray<Int>() }
+        .toTypedArray<Array<Int>>(),
+    (0 until DIM).map { it * DIM + it }.toTypedArray(),
+    (0 until DIM).map { (DIM - it - 1) * DIM + it }.toTypedArray()
+)
+
+private fun <T> checkLines(arr: Array<T>, desired: T): Boolean =
+    getMatchingLine(arr, desired) != null
 
 private fun <T> checkDraw(arr: Array<T>, none: T): Boolean = arr.none { it == none }
+
+private fun <T> getMatchingLine(arr: Array<T>, desired: T): Array<Int>? =
+    lineIndices.find { it.all { idx -> arr[idx] == desired } }
 //endregion
 
 // region State
@@ -37,7 +66,8 @@ enum class OuterBoardResult {
 data class InnerBoardState(
     val result: InnerBoardResult,
     val tiles: Array<TileState>,
-    val enabled: Boolean
+    val enabled: Boolean,
+    val formsWinLine: Boolean
 ) : Serializable {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -80,32 +110,50 @@ data class OuterBoardState(
             noneResult = InnerBoardResult.None,
             lineResult = event.player.ibr()
         )
-        val constructIsEnabled = {
-            val relevantBoardResult =
-                if (event.boardId == event.tileId) nextInnerBoardResult else innerBoards[event.tileId].result
-            val nextEnabledBoardId =
-                if (relevantBoardResult == InnerBoardResult.None) event.tileId else null
-            { bid: Int -> nextEnabledBoardId == null || bid == nextEnabledBoardId }
-        }
-        val isEnabled = constructIsEnabled()
-        val changedInnerBoard =
-            InnerBoardState(nextInnerBoardResult, nextTiles, isEnabled(event.boardId))
-        val nextInnerBoards =
-            innerBoards.mapIndexed { boardId, innerBoardState ->
-                if (boardId == event.boardId) changedInnerBoard else innerBoardState.copy(
-                    enabled = isEnabled(
-                        boardId
-                    )
-                )
-            }.toTypedArray()
-        val nextOuterBoardResult = getResult(
-            arr = nextInnerBoards.map { it.result }.toTypedArray(),
+        val (nextOuterBoardResult, line) = getResultAndLine(
+            arr = innerBoards.mapIndexed { boardId, innerBoardState ->
+                if (boardId == event.boardId) nextInnerBoardResult else innerBoardState.result
+            }.toTypedArray(),
             player = event.player.ibr(),
             none = InnerBoardResult.None,
             drawResult = OuterBoardResult.Draw,
             noneResult = OuterBoardResult.None,
             lineResult = event.player.obr()
         )
+        val isEnabled = when (nextOuterBoardResult) {
+            OuterBoardResult.Cross,
+            OuterBoardResult.Circle,
+            OuterBoardResult.Draw -> { _: Int -> false }
+
+            OuterBoardResult.None -> {
+                val relevantBoardResult =
+                    if (event.boardId == event.tileId) nextInnerBoardResult else innerBoards[event.tileId].result
+                val nextEnabledBoardId =
+                    if (relevantBoardResult == InnerBoardResult.None) event.tileId else null
+                { bid: Int -> nextEnabledBoardId == null || bid == nextEnabledBoardId }
+            }
+        }
+        val isFormsWinLine = when (nextOuterBoardResult) {
+            OuterBoardResult.Cross,
+            OuterBoardResult.Circle -> { bid: Int -> line?.contains(bid) ?: false }
+
+            else -> { _ -> false }
+        }
+
+        val changedInnerBoard =
+            InnerBoardState(
+                nextInnerBoardResult,
+                nextTiles,
+                isEnabled(event.boardId),
+                isFormsWinLine(event.boardId)
+            )
+        val nextInnerBoards =
+            innerBoards.mapIndexed { boardId, innerBoardState ->
+                if (boardId == event.boardId) changedInnerBoard else innerBoardState.copy(
+                    enabled = isEnabled(boardId),
+                    formsWinLine = isFormsWinLine(boardId)
+                )
+            }.toTypedArray()
         return this.copy(result = nextOuterBoardResult, innerBoards = nextInnerBoards)
     }
 
@@ -132,7 +180,10 @@ data class GameState(
     val player: Player = Player.Cross, val outerBoardState: OuterBoardState = OuterBoardState(
         OuterBoardResult.None, (0 until DD).map {
             InnerBoardState(
-                InnerBoardResult.None, (0 until DD).map { TileState.None }.toTypedArray(), true
+                result = InnerBoardResult.None,
+                tiles = (0 until DD).map { TileState.None }.toTypedArray(),
+                enabled = true,
+                formsWinLine = false
             )
         }.toTypedArray()
     )

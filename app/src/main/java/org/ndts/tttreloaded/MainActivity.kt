@@ -221,7 +221,7 @@ fun OuterBoard(
         Row(modifier = Modifier.weight(1.0F)) {
             repeat(DIM) { j ->
                 val boardId = i * DIM + j
-                InnerBoard(
+                InnerBoardOrBigTile(
                     state.innerBoards[boardId],
                     modifier = Modifier.weight(1.0F),
                 ) { tileId ->
@@ -234,36 +234,39 @@ fun OuterBoard(
 
 
 @Composable
-fun InnerBoard(
+fun InnerBoardOrBigTile(
     state: InnerBoardState, modifier: Modifier = Modifier, onTileClick: (Int) -> Unit
 ) = AnimatedContent(targetState = state.result, label = "InnerBoardContent", transitionSpec = {
     (fadeIn(animationSpec = tween(220)) + scaleIn(
         initialScale = 0.92f, animationSpec = tween(220)
     )).togetherWith(fadeOut(animationSpec = tween(150)))
 }) {
+    val overlayColor by animateColorAsState(
+        targetValue = if (state.enabled || state.formsWinLine) Color.Transparent else Color.Black.copy(
+            alpha = 0.25f
+        ), label = "overlayColor", animationSpec = tween(durationMillis = 250, delayMillis = 150)
+    )
     Box(Modifier.padding(2.dp)) {
+        val tileBorder = @Composable {
+            if (state.formsWinLine) BorderStroke(
+                2.5.dp,
+                MaterialTheme.colorScheme.borderHighlightColor()
+            ) else
+                BorderStroke(1.5.dp, MaterialTheme.colorScheme.borderColor())
+        }
         when (it) {
-            InnerBoardResult.Cross -> CrossTile(
-                modifier = modifier.border(
-                    width = 1.5.dp, color = MaterialTheme.colorScheme.borderColor()
-                )
-            )
+            InnerBoardResult.Cross -> CrossTile(modifier = modifier.border(tileBorder()))
 
-            InnerBoardResult.Circle -> CircleTile(
-                modifier = modifier.border(
-                    width = 1.5.dp, color = MaterialTheme.colorScheme.borderColor()
-                )
-            )
+            InnerBoardResult.Circle -> CircleTile(modifier = modifier.border(tileBorder()))
 
-            InnerBoardResult.Draw -> DrawTile(
-                modifier = modifier.border(
-                    width = 1.5.dp, color = MaterialTheme.colorScheme.borderColor()
-                )
-            )
+            InnerBoardResult.Draw -> DrawTile(modifier = modifier.border(tileBorder()))
 
             InnerBoardResult.None -> InnerBoard(
                 tileStates = state.tiles, enabled = state.enabled, onTileClick = onTileClick
             )
+        }
+        Canvas(modifier = Modifier.matchParentSize()) {
+            drawRect(overlayColor)
         }
     }
 }
@@ -275,11 +278,6 @@ fun InnerBoard(
     enabled: Boolean,
     onTileClick: (Int) -> Unit
 ) {
-    val overlayColor by animateColorAsState(
-        targetValue = if (enabled) Color.Transparent else Color.Black.copy(
-            alpha = 0.25f
-        ), label = "overlayColor", animationSpec = tween(durationMillis = 250, delayMillis = 150)
-    )
     val outerBorderColor by animateColorAsState(
         targetValue = if (enabled) MaterialTheme.colorScheme.borderHighlightColor() else MaterialTheme.colorScheme.borderColor(),
         label = "outerBorderColor",
@@ -290,34 +288,29 @@ fun InnerBoard(
         label = "outerBorderWidth",
         animationSpec = tween(durationMillis = 250, delayMillis = 150)
     )
-    Box {
-        Card(
-            modifier = modifier
-                .aspectRatio(1.0f)
-                .fillMaxSize(),
-            shape = RoundedCornerShape(0.dp),
-            border = BorderStroke(outerBorderWidth, outerBorderColor),
-        ) {
-            repeat(DIM) { i ->
-                Row(
-                    modifier = Modifier
-                        .weight(1.0F)
-                        .fillMaxHeight(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
-                ) {
-                    repeat(DIM) { j ->
-                        val tileId = i * DIM + j
-                        Tile(state = tileStates[tileId],
-                            modifier = Modifier
-                                .weight(1.0F)
-                                .clickable(enabled = enabled) { onTileClick(tileId) })
-                    }
+    Card(
+        modifier = modifier
+            .aspectRatio(1.0f)
+            .fillMaxSize(),
+        shape = RoundedCornerShape(0.dp),
+        border = BorderStroke(outerBorderWidth, outerBorderColor),
+    ) {
+        repeat(DIM) { i ->
+            Row(
+                modifier = Modifier
+                    .weight(1.0F)
+                    .fillMaxHeight(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                repeat(DIM) { j ->
+                    val tileId = i * DIM + j
+                    Tile(state = tileStates[tileId],
+                        modifier = Modifier
+                            .weight(1.0F)
+                            .clickable(enabled = enabled) { onTileClick(tileId) })
                 }
             }
-        }
-        Canvas(modifier = Modifier.matchParentSize()) {
-            drawRect(overlayColor)
         }
     }
 }
