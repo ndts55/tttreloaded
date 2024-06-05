@@ -108,22 +108,22 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun ColorScheme.leftColor() = secondary
+fun ColorScheme.cross() = secondary
 
 @Composable
-fun ColorScheme.leftContainer() = secondaryContainer
+fun ColorScheme.crossContainer() = secondaryContainer
 
 @Composable
-fun ColorScheme.onLeftContainer() = onSecondaryContainer
+fun ColorScheme.onCrossContainer() = onSecondaryContainer
 
 @Composable
-fun ColorScheme.rightColor() = tertiary
+fun ColorScheme.circle() = tertiary
 
 @Composable
-fun ColorScheme.rightContainer() = tertiaryContainer
+fun ColorScheme.circleContainer() = tertiaryContainer
 
 @Composable
-fun ColorScheme.onRightContainer() = onTertiaryContainer
+fun ColorScheme.onCircleContainer() = onTertiaryContainer
 
 @Composable
 fun ColorScheme.noneColor() = outlineVariant
@@ -155,11 +155,11 @@ fun GameView(state: GameState, onPlayEvent: (PlayEvent) -> Unit, onReset: () -> 
             }
         }, colors = TopAppBarDefaults.topAppBarColors(
             containerColor = when (state.player) {
-                Player.Cross -> MaterialTheme.colorScheme.leftContainer()
-                Player.Circle -> MaterialTheme.colorScheme.rightContainer()
+                Player.Cross -> MaterialTheme.colorScheme.crossContainer()
+                Player.Circle -> MaterialTheme.colorScheme.circleContainer()
             }, titleContentColor = when (state.player) {
-                Player.Cross -> MaterialTheme.colorScheme.onLeftContainer()
-                Player.Circle -> MaterialTheme.colorScheme.onRightContainer()
+                Player.Cross -> MaterialTheme.colorScheme.onCrossContainer()
+                Player.Circle -> MaterialTheme.colorScheme.onCircleContainer()
             }
         )
         )
@@ -183,11 +183,11 @@ fun GameView(state: GameState, onPlayEvent: (PlayEvent) -> Unit, onReset: () -> 
                     }
                 }, colors = ButtonDefaults.buttonColors(
                     containerColor = when (state.player) {
-                        Player.Cross -> MaterialTheme.colorScheme.leftContainer()
-                        Player.Circle -> MaterialTheme.colorScheme.rightContainer()
+                        Player.Cross -> MaterialTheme.colorScheme.crossContainer()
+                        Player.Circle -> MaterialTheme.colorScheme.circleContainer()
                     }, contentColor = when (state.player) {
-                        Player.Cross -> MaterialTheme.colorScheme.onLeftContainer()
-                        Player.Circle -> MaterialTheme.colorScheme.onRightContainer()
+                        Player.Cross -> MaterialTheme.colorScheme.onCrossContainer()
+                        Player.Circle -> MaterialTheme.colorScheme.onCircleContainer()
                     }
                 )
             ) {
@@ -339,13 +339,13 @@ fun Tile(state: TileState, modifier: Modifier = Modifier) =
 @Composable
 fun LeftTile(modifier: Modifier = Modifier) = Square(
     modifier = modifier,
-    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.leftContainer())
+    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.crossContainer())
 ) { LeftIcon(modifier = Modifier.fillMaxSize()) }
 
 @Composable
 fun RightTile(modifier: Modifier = Modifier) = Square(
     modifier = modifier,
-    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.rightContainer())
+    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.circleContainer())
 ) { RightIcon(modifier = Modifier.fillMaxSize()) }
 
 @Composable
@@ -380,15 +380,15 @@ fun Square(
 @Composable
 fun LeftIcon(modifier: Modifier = Modifier) = Icon(
     painterResource(id = R.drawable.close),
-    contentDescription = "Left",
-    tint = MaterialTheme.colorScheme.leftColor(),
+    contentDescription = "Cross",
+    tint = MaterialTheme.colorScheme.cross(),
     modifier = modifier
 )
 
 @Composable
 fun RightIcon(modifier: Modifier = Modifier) = Icon(
     painterResource(id = R.drawable.circle),
-    contentDescription = "Right",
-    tint = MaterialTheme.colorScheme.rightColor(),
+    contentDescription = "Circle",
+    tint = MaterialTheme.colorScheme.circle(),
     modifier = modifier
 )
